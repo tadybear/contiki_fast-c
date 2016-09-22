@@ -391,6 +391,10 @@ dio_input(void)
       } else if(dio.mc.type == RPL_DAG_MC_ENERGY) {
         dio.mc.obj.energy.flags = buffer[i + 6];
         dio.mc.obj.energy.energy_est = buffer[i + 7];
+      } else if(dio.mc.type == RPL_DAG_MC_HOPCOUNT) {
+		dio.mc.type = RPL_DAG_MC_NONE;
+        dio.mc.hopcount = buffer[i + 7];
+		PRINTF("RPL: DAG MC HOPCOUNT: %u\n",(unsigned)dio.mc.hopcount);
       } else {
        PRINTF("RPL: Unhandled DAG MC type: %u\n", (unsigned)dio.mc.type);
        goto discard;
@@ -555,6 +559,19 @@ dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
 	(unsigned)instance->mc.type);
       return;
     }
+  }
+  else {
+	buffer[pos++] = RPL_OPTION_DAG_METRIC_CONTAINER;
+    buffer[pos++] = 6;
+    buffer[pos++] = RPL_DAG_MC_HOPCOUNT;
+    buffer[pos++] = instance->mc.flags >> 1;
+    buffer[pos] = (instance->mc.flags & 1) << 7;
+    buffer[pos++] |= (instance->mc.aggr << 4) | instance->mc.prec;
+    buffer[pos++] = 2;
+     
+    //buffer[pos++] = RPL_DAG_MC_HOPCOUNT;
+    buffer[pos++] = 0; // Res | Flags
+    buffer[pos++] = instance->mc.hopcount;	  
   }
 #endif /* !RPL_LEAF_ONLY */
 
@@ -1010,6 +1027,11 @@ dao_output_target_seq(rpl_parent_t *parent, uip_ipaddr_t *prefix,
   int pos;
 
   /* Destination Advertisement Object */
+  if(RPL_IGNORE_NOPATH_DAO && lifetime == RPL_ZERO_LIFETIME)
+  {
+	PRINTF("RPL dao_output_target ignore NO-PATH DAO\n");
+    return;  
+  }
 
   /* If we are in feather mode, we should not send any DAOs */
   if(rpl_get_mode() == RPL_MODE_FEATHER) {

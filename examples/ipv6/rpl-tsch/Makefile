@@ -5,11 +5,16 @@ CONTIKI=../../..
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
 CONTIKI_WITH_IPV6 = 1
+MAKE_WITH_FAST_C ?= 0 # force Orchestra from command line
 MAKE_WITH_ORCHESTRA ?= 0 # force Orchestra from command line
 MAKE_WITH_SECURITY ?= 0 # force Security from command line
 
-APPS += orchestra
+APPS += orchestra fast-c
 MODULES += core/net/mac/tsch
+
+ifeq ($(MAKE_WITH_FAST_C),1)
+CFLAGS += -DWITH_FAST_C=1
+endif
 
 ifeq ($(MAKE_WITH_ORCHESTRA),1)
 CFLAGS += -DWITH_ORCHESTRA=1

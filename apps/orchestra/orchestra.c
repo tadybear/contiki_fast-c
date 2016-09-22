@@ -55,6 +55,7 @@ RIME_SNIFFER(orchestra_sniffer, orchestra_packet_received, orchestra_packet_sent
 linkaddr_t orchestra_parent_linkaddr;
 /* Set to one only after getting an ACK for a DAO sent to our preferred parent */
 int orchestra_parent_knows_us = 0;
+int current_hc;
 
 /* The set of Orchestra rules in use */
 const struct orchestra_rule *all_rules[] = ORCHESTRA_RULES;
@@ -145,6 +146,11 @@ orchestra_callback_new_time_source(const struct tsch_neighbor *old, const struct
       all_rules[i]->new_time_source(old, new);
     }
   }
+}
+/*---------------------------------------------------------------------------*/
+void orchestra_callback_hc_updated(const uint8_t hc)
+{
+	current_hc = hc;
 }
 /*---------------------------------------------------------------------------*/
 void

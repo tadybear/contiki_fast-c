@@ -856,6 +856,10 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 
     } else {
       uint8_t current_channel;
+#ifdef WITH_FAST_C  
+      struct tsch_slotframe *sf;
+      uint8_t mod_ch_offset;
+#endif
       TSCH_DEBUG_SLOT_START();
       tsch_in_slot_operation = 1;
       /* Get a packet ready to be sent */
@@ -867,7 +871,17 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor);
       }
       /* Hop channel */
+#ifdef WITH_FAST_C  
+      sf = tsch_schedule_get_slotframe_by_handle(current_link->slotframe_handle);
+      if(sf->cal_ch_offset != NULL) {
+		  mod_ch_offset = sf->cal_ch_offset(current_packet != NULL, current_link->channel_offset);
+	  }
+	  else
+		mod_ch_offset = current_link->channel_offset;
+	  current_channel = tsch_calculate_channel(&current_asn, mod_ch_offset);		
+#else      
       current_channel = tsch_calculate_channel(&current_asn, current_link->channel_offset);
+#endif      
       NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, current_channel);
       /* Reset drift correction */
       drift_correction = 0;

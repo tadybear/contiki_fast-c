@@ -651,9 +651,9 @@ rpl_add_parent(rpl_dag_t *dag, rpl_dio_t *dio, uip_ipaddr_t *addr)
       if(nbr != NULL && nbr->link_metric == 0) {
 	nbr->link_metric = RPL_INIT_LINK_METRIC * RPL_DAG_MC_ETX_DIVISOR;
       }
-#if RPL_DAG_MC != RPL_DAG_MC_NONE
+//#if RPL_DAG_MC != RPL_DAG_MC_NONE
       memcpy(&p->mc, &dio->mc, sizeof(p->mc));
-#endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
+//#endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
     }
   }
 
@@ -1451,9 +1451,9 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 
   /* We have allocated a candidate parent; process the DIO further. */
 
-#if RPL_DAG_MC != RPL_DAG_MC_NONE
+//#if RPL_DAG_MC != RPL_DAG_MC_NONE
   memcpy(&p->mc, &dio->mc, sizeof(p->mc));
-#endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
+//#endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
   if(rpl_process_parent_event(instance, p) == 0) {
     PRINTF("RPL: The candidate parent is rejected\n");
     return;

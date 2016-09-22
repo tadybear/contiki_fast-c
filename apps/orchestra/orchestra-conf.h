@@ -50,6 +50,12 @@
                           &unicast_per_neighbor, \
                           &default_common, \
                         }
+/*                        
+#define ORCHESTRA_RULES { &eb_per_time_source, \
+                          &default_common, \
+                          &unicast_per_neighbor, \
+                        }
+*/                        
 #endif /* ORCHESTRA_CONF_RULES */
 
 /* Length of the various slotframes. Tune to balance network capacity,

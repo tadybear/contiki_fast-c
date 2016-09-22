@@ -47,6 +47,16 @@
 
 #include <string.h>
 
+/* A configurable function called after adding a route */
+#ifdef NETSTACK_CONF_ROUTE_ADDED_CALLBACK
+void NETSTACK_CONF_ROUTE_ADDED_CALLBACK(const uip_ipaddr_t *addr);
+#endif /* NETSTACK_CONF_ROUTE_ADDED_CALLBACK */
+
+/* A configurable function called after removing a route */
+#ifdef NETSTACK_CONF_ROUTE_REMOVED_CALLBACK
+void NETSTACK_CONF_ROUTE_REMOVED_CALLBACK(const uip_ipaddr_t *addr);
+#endif /* NETSTACK_CONF_ROUTE_REMOVED_CALLBACK */
+
 /* A configurable function called after adding a new neighbor as next hop */
 #ifdef NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK
 void NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK(const linkaddr_t *addr);
@@ -425,6 +435,11 @@ uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
 #if DEBUG != DEBUG_NONE
   assert_nbr_routes_list_sane();
 #endif /* DEBUG != DEBUG_NONE */
+
+#ifdef NETSTACK_CONF_ROUTE_ADDED_CALLBACK
+NETSTACK_CONF_ROUTE_ADDED_CALLBACK(ipaddr);
+#endif /* NETSTACK_CONF_ROUTE_ADDED_CALLBACK*/
+
   return r;
 }
 
@@ -483,11 +498,16 @@ uip_ds6_route_rm(uip_ds6_route_t *route)
     call_route_callback(UIP_DS6_NOTIFICATION_ROUTE_RM,
         &route->ipaddr, uip_ds6_route_nexthop(route));
 #endif
+
+#ifdef NETSTACK_CONF_ROUTE_REMOVED_CALLBACK
+NETSTACK_CONF_ROUTE_REMOVED_CALLBACK(&route->ipaddr);
+#endif /* NETSTACK_CONF_ROUTE_REMOVED_CALLBACK*/
   }
 
 #if DEBUG != DEBUG_NONE
   assert_nbr_routes_list_sane();
 #endif /* DEBUG != DEBUG_NONE */
+
   return;
 }
 /*---------------------------------------------------------------------------*/

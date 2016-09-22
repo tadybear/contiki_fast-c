@@ -120,6 +120,10 @@ struct tsch_slotframe {
   /* Number of timeslots in the slotframe.
    * Stored as struct asn_divisor_t because we often need ASN%size */
   struct asn_divisor_t size;
+#ifdef WITH_FAST_C  
+  uint8_t slide_hc;
+  uint8_t (*cal_ch_offset)(uint8_t isTx, uint8_t ori_chOffset);
+#endif  
   /* List of links belonging to this slotframe */
   LIST_STRUCT(links_list);
 };

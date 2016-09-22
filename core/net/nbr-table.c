@@ -443,3 +443,14 @@ handle_periodic_timer(void *ptr)
 }
 #endif
 
+uint8_t nbr_table_num_neighbors()
+{
+	uint8_t ret = 0;
+	int i;
+	for(i = 0; i < NBR_TABLE_MAX_NEIGHBORS; i++) {
+		if(used_map[i] > 0) {
+			ret++;
+		}	
+	}
+	return ret;
+}

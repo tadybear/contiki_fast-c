@@ -35,6 +35,10 @@
 #ifndef __PROJECT_CONF_H__
 #define __PROJECT_CONF_H__
 
+#ifndef WITH_FAST_C
+#define WITH_FAST_C 0
+#endif /* WITH_FAST_C */
+
 /* Set to run orchestra */
 #ifndef WITH_ORCHESTRA
 #define WITH_ORCHESTRA 0
@@ -82,7 +86,7 @@
 /* TSCH logging. 0: disabled. 1: basic log. 2: with delayed
  * log messages from interrupt */
 #undef TSCH_LOG_CONF_LEVEL
-#define TSCH_LOG_CONF_LEVEL 2
+#define TSCH_LOG_CONF_LEVEL 0
 
 /* IEEE802.15.4 PANID */
 #undef IEEE802154_CONF_PANID
@@ -96,6 +100,8 @@
  * Larger values result in less frequent active slots: reduces capacity and saves energy. */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
 #define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 3
+
+#define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE TSCH_HOPPING_SEQUENCE_16_16
 
 #if WITH_SECURITY
 
@@ -121,19 +127,55 @@
 #define TSCH_CALLBACK_PACKET_READY orchestra_callback_packet_ready
 #define NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK orchestra_callback_child_added
 #define NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK orchestra_callback_child_removed
+#define TSCH_SCHEDULE_CONF_MAX_LINKS 50
+//#define ORCHESTRA_CONF_UNICAST_SENDER_BASED 1
 
 #endif /* WITH_ORCHESTRA */
+
+#if WITH_FAST_C
+
+#define TSCH_SCHEDULE_CONF_WITH_6TISCH_MINIMAL 0 /* No 6TiSCH minimal schedule */
+#define TSCH_CONF_WITH_LINK_SELECTOR 1 /* Orchestra requires per-packet link selection */
+
+/* FAST-C callbacks */
+#define TSCH_CALLBACK_NEW_TIME_SOURCE fast_c_callback_new_time_source
+#define TSCH_CALLBACK_PACKET_READY fast_c_callback_packet_ready
+#define NETSTACK_CONF_ROUTE_ADDED_CALLBACK fast_c_callback_route_added
+#define NETSTACK_CONF_ROUTE_REMOVED_CALLBACK fast_c_callback_route_removed
+#define RPL_HOP_COUNT_UPDATED_CALLBACK fast_c_callback_hc_updated
+
+#undef TSCH_CONF_DEFAULT_TIMESLOT_LENGTH
+#define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH 15000
+#define TSCH_SCHEDULE_CONF_MAX_LINKS 50
+
+#endif /* WITH_FAST_C */
 
 /*******************************************************/
 /************* Other system configuration **************/
 /*******************************************************/
+
+#if CONTIKI_TARGET_SKY
+/* Save some space to fit the limited RAM of the z1 */
+#undef UIP_CONF_TCP
+#define UIP_CONF_TCP 0
+#undef QUEUEBUF_CONF_NUM
+#define QUEUEBUF_CONF_NUM 4
+#undef UIP_CONF_MAX_ROUTES
+#define UIP_CONF_MAX_ROUTES  25
+#undef NBR_TABLE_CONF_MAX_NEIGHBORS
+#define NBR_TABLE_CONF_MAX_NEIGHBORS 8
+#undef UIP_CONF_ND6_SEND_NA
+#define UIP_CONF_ND6_SEND_NA 0
+#undef SICSLOWPAN_CONF_FRAG
+#define SICSLOWPAN_CONF_FRAG 0
+#endif
 
 #if CONTIKI_TARGET_Z1
 /* Save some space to fit the limited RAM of the z1 */
 #undef UIP_CONF_TCP
 #define UIP_CONF_TCP 0
 #undef QUEUEBUF_CONF_NUM
-#define QUEUEBUF_CONF_NUM 4
+#define QUEUEBUF_CONF_NUM 6
 #undef UIP_CONF_MAX_ROUTES
 #define UIP_CONF_MAX_ROUTES  8
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS

@@ -98,6 +98,7 @@ struct rpl_metric_container {
     struct rpl_metric_object_energy energy;
     uint16_t etx;
   } obj;
+  uint8_t hopcount;
 };
 typedef struct rpl_metric_container rpl_metric_container_t;
 /*---------------------------------------------------------------------------*/
@@ -109,9 +110,9 @@ struct rpl_dag;
 
 struct rpl_parent {
   struct rpl_dag *dag;
-#if RPL_DAG_MC != RPL_DAG_MC_NONE
+//#if RPL_DAG_MC != RPL_DAG_MC_NONE
   rpl_metric_container_t mc;
-#endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
+//#endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
   rpl_rank_t rank;
   clock_time_t last_tx_time;
   uint8_t dtsn;

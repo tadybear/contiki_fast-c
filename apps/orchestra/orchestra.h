@@ -71,4 +71,5 @@ void orchestra_callback_child_added(const linkaddr_t *addr);
 /* Set with #define NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK orchestra_callback_child_removed */
 void orchestra_callback_child_removed(const linkaddr_t *addr);
 
+void orchestra_callback_hc_updated(const uint8_t hc);
 #endif /* __ORCHESTRA_H__ */

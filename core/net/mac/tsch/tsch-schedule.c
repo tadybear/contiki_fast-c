@@ -91,6 +91,10 @@ tsch_schedule_add_slotframe(uint16_t handle, uint16_t size)
       LIST_STRUCT_INIT(sf, links_list);
       /* Add the slotframe to the global list */
       list_add(slotframe_list, sf);
+#ifdef WITH_FAST_C  
+	  sf->slide_hc = 0;
+	  sf->cal_ch_offset = NULL;
+#endif           
     }
     PRINTF("TSCH-schedule: add_slotframe %u %u\n",
            handle, size);
@@ -324,7 +328,13 @@ tsch_schedule_get_next_active_link(struct asn_t *asn, uint16_t *time_offset,
     /* For each slotframe, look for the earliest occurring link */
     while(sf != NULL) {
       /* Get timeslot from ASN, given the slotframe length */
+#ifdef WITH_FAST_C  
+      struct asn_t slide_asn = *asn;
+      ASN_INC(slide_asn, sf->slide_hc);
+      uint16_t timeslot = ASN_MOD(slide_asn, sf->size);
+#else      
       uint16_t timeslot = ASN_MOD(*asn, sf->size);
+#endif        
       struct tsch_link *l = list_head(sf->links_list);
       while(l != NULL) {
         uint16_t time_to_timeslot =
@@ -429,8 +439,11 @@ tsch_schedule_print(void)
 
     while(sf != NULL) {
       struct tsch_link *l = list_head(sf->links_list);
-
+#ifdef WITH_FAST_C  
+      printf("[Slotframe] Handle %u, size %u, hc %u\n", sf->handle, sf->size.val, sf->slide_hc);
+#else
       printf("[Slotframe] Handle %u, size %u\n", sf->handle, sf->size.val);
+#endif      
       printf("List of links:\n");
 
       while(l != NULL) {

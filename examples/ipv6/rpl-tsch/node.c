@@ -41,18 +41,24 @@
 #include "net/rpl/rpl.h"
 #include "net/ipv6/uip-ds6-route.h"
 #include "net/mac/tsch/tsch.h"
+#include "net/ip/uip-udp-packet.h"
 #if WITH_ORCHESTRA
 #include "orchestra.h"
 #endif /* WITH_ORCHESTRA */
+#if WITH_FAST_C
+#include "fast-c.h"
+#endif /* WITH_FAST_C */
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
+#if CONTIKI_TARGET_SKY
+#else
 #define CONFIG_VIA_BUTTON PLATFORM_HAS_BUTTON
 #if CONFIG_VIA_BUTTON
 #include "button-sensor.h"
 #endif /* CONFIG_VIA_BUTTON */
-
+#endif
 /*---------------------------------------------------------------------------*/
 PROCESS(node_process, "RPL Node");
 #if CONFIG_VIA_BUTTON
@@ -62,6 +68,44 @@ AUTOSTART_PROCESSES(&node_process);
 #endif /* CONFIG_VIA_BUTTON */
 
 /*---------------------------------------------------------------------------*/
+
+#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
+#define UDP_CLIENT_PORT	8765
+#define UDP_SERVER_PORT	5678
+#define UDP_EXAMPLE_ID  190
+#define MAX_PAYLOAD_LEN		10
+static struct uip_udp_conn *server_conn;
+static struct uip_udp_conn *client_conn;
+static uip_ipaddr_t server_ipaddr;
+static int seq_id;
+/*---------------------------------------------------------------------------*/
+
+static void
+tcpip_handler(void)
+{
+  char *appdata;
+
+  if(uip_newdata()) {
+    appdata = (char *)uip_appdata;
+    appdata[uip_datalen()] = 0;
+    printf("DATA recv '%s' from %d\n", appdata, UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1]);
+  }
+}
+/*---------------------------------------------------------------------------*/
+static void
+send_packet(void *ptr)
+{
+  char buf[MAX_PAYLOAD_LEN] = "Hello";
+
+  seq_id++;
+  printf("DATA send to %d 'Hello %d'\n",
+         server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1], seq_id);
+  //sprintf(buf, "Hello %d from the client", seq_id);
+  uip_udp_packet_sendto(client_conn, buf, strlen(buf),
+                        &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+}
+/*---------------------------------------------------------------------------*/
+
 static void
 print_network_status(void)
 {
@@ -108,6 +152,7 @@ print_network_status(void)
   }
   
   PRINTA("----------------------\n");
+  //tsch_schedule_print();
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -192,19 +237,71 @@ PROCESS_THREAD(node_process, ev, data)
   } else {
     net_init(NULL);
   }
+#if WITH_FAST_C
+  fast_c_init();
+#endif /* WITH_FAST_C */
   
 #if WITH_ORCHESTRA
   orchestra_init();
 #endif /* WITH_ORCHESTRA */
   
   /* Print out routing tables every minute */
+  if(!is_coordinator) {
+  client_conn = udp_new(NULL, UIP_HTONS(UDP_SERVER_PORT), NULL); 
+  if(client_conn == NULL) {
+    PRINTF("No UDP connection available, exiting the process!\n");
+    PROCESS_EXIT();
+  }
+  udp_bind(client_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+
+  PRINTF("Created a connection with the server ");
+  PRINT6ADDR(&client_conn->ripaddr);
+  PRINTF(" local/remote port %u/%u\n",
+	UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
+		  
+  uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, 1);
+  etimer_set(&et, CLOCK_SECOND * 60 * 5);
+  PROCESS_YIELD_UNTIL(etimer_expired(&et));
   etimer_set(&et, CLOCK_SECOND * 60);
   while(1) {      
-    print_network_status();
+	#if CONTIKI_TARGET_SKY
+	#else
+	print_network_status();
+	#endif
+    send_packet(NULL);
     PROCESS_YIELD_UNTIL(etimer_expired(&et));
     etimer_reset(&et);
   }
-  
+  }
+  else {
+  server_conn = udp_new(NULL, UIP_HTONS(UDP_CLIENT_PORT), NULL);
+  if(server_conn == NULL) {
+    PRINTF("No UDP connection available, exiting the process!\n");
+    PROCESS_EXIT();
+  }
+  udp_bind(server_conn, UIP_HTONS(UDP_SERVER_PORT));
+
+  PRINTF("Created a server connection with remote address ");
+  PRINT6ADDR(&server_conn->ripaddr);
+  PRINTF(" local/remote port %u/%u\n", UIP_HTONS(server_conn->lport),
+         UIP_HTONS(server_conn->rport));
+	  
+	  
+  etimer_set(&et, CLOCK_SECOND * 60);
+  while(1) {      
+	PROCESS_YIELD();
+    if(ev == tcpip_event) {
+      tcpip_handler();
+    }
+    if(etimer_expired(&et)) {
+		#if CONTIKI_TARGET_SKY
+		#else
+		print_network_status();
+		#endif
+		etimer_reset(&et);
+	}
+  }
+  }
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

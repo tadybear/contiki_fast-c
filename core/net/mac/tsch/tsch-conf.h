@@ -135,6 +135,22 @@
 #define TSCH_DEFAULT_TS_MAX_TX             4256
 #define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    15000
 
+#elif TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 20000
+/* Default timeslot timing for platfroms requiring 30ms slots */
+
+#define TSCH_DEFAULT_TS_CCA_OFFSET         1800
+#define TSCH_DEFAULT_TS_CCA                128
+#define TSCH_DEFAULT_TS_TX_OFFSET          4000
+#define TSCH_DEFAULT_TS_RX_OFFSET          (TSCH_DEFAULT_TS_TX_OFFSET - (TSCH_CONF_RX_WAIT / 2))
+#define TSCH_DEFAULT_TS_RX_ACK_DELAY       3600
+#define TSCH_DEFAULT_TS_TX_ACK_DELAY       4000
+#define TSCH_DEFAULT_TS_RX_WAIT            TSCH_CONF_RX_WAIT
+#define TSCH_DEFAULT_TS_ACK_WAIT           800
+#define TSCH_DEFAULT_TS_RX_TX              2072
+#define TSCH_DEFAULT_TS_MAX_ACK            2400
+#define TSCH_DEFAULT_TS_MAX_TX             4256
+#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    20000
+
 #elif TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 65000U
 /* 65ms timeslot, i.e. nearly the max length allowed by standard (16-bit unsigned in micro-seconds).
  * Useful for running link-layer security on sky or z1 in Cooja, where only S/W security is supported.

@@ -102,7 +102,11 @@ ringbufindex_get(struct ringbufindex *r)
      most platforms, but C does not guarantee this.
    */
   if(((r->put_ptr - r->get_ptr) & r->mask) > 0) {
+#if WITH_FAST_C
+    get_ptr = (r->get_ptr + 1) & r->mask;
+#else
     get_ptr = r->get_ptr;
+#endif    
     r->get_ptr = (r->get_ptr + 1) & r->mask;
     return get_ptr;
   } else {

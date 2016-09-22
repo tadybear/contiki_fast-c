@@ -1238,6 +1238,7 @@ send_packet(linkaddr_t *dest)
    * address with the function packetbuf_addr(PACKETBUF_ADDR_RECEIVER).
    */
   packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, dest);
+  packetbuf_set_addr(PACKETBUF_ADDR_ESENDER, (linkaddr_t *)&UIP_IP_BUF->srcipaddr.u8[8]);
 
 #if NETSTACK_CONF_BRIDGE_MODE
   /* This needs to be explicitly set here for bridge mode to work */

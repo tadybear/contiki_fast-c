@@ -347,4 +347,13 @@
 #define RPL_DIS_START_DELAY             5
 #endif
 
+/*
+ * Ignore NO-PATH DAO for FAST-C
+ */
+#ifdef  RPL_CONF_IGNORE_NOPATH_DAO
+#define RPL_IGNORE_NOPATH_DAO	RPL_CONF_IGNORE_NOPATH_DAO
+#else
+#define  RPL_IGNORE_NOPATH_DAO	0
+#endif
+
 #endif /* RPL_CONF_H */

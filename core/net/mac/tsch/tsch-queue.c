@@ -77,6 +77,13 @@ LIST(neighbor_list);
 struct tsch_neighbor *n_broadcast;
 struct tsch_neighbor *n_eb;
 
+int tsch_packet_memb_numfree_min = QUEUEBUF_NUM + 1;
+int tsch_packet_memb_alloc_fail = 0;
+
+#if WITH_FAST_C
+uint8_t last_get_index;
+#endif
+
 /*---------------------------------------------------------------------------*/
 /* Add a TSCH neighbor */
 struct tsch_neighbor *
@@ -226,6 +233,7 @@ tsch_queue_add_packet(const linkaddr_t *addr, mac_callback_t sent, void *ptr)
   struct tsch_neighbor *n = NULL;
   int16_t put_index = -1;
   struct tsch_packet *p = NULL;
+  int packet_memb_numfree;
   if(!tsch_is_locked()) {
     n = tsch_queue_add_nbr(addr);
     if(n != NULL) {
@@ -246,11 +254,18 @@ tsch_queue_add_packet(const linkaddr_t *addr, mac_callback_t sent, void *ptr)
             /* Add to ringbuf (actual add committed through atomic operation) */
             n->tx_array[put_index] = p;
             ringbufindex_put(&n->tx_ringbuf);
+			
+            packet_memb_numfree = memb_numfree(&packet_memb);
+            if(tsch_packet_memb_numfree_min > packet_memb_numfree) {
+				tsch_packet_memb_numfree_min = packet_memb_numfree;
+			}
+            
             return p;
           } else {
             memb_free(&packet_memb, p);
           }
         }
+        else tsch_packet_memb_alloc_fail++;
       }
     }
   }
@@ -276,6 +291,26 @@ tsch_queue_packet_count(const linkaddr_t *addr)
 struct tsch_packet *
 tsch_queue_remove_packet_from_queue(struct tsch_neighbor *n)
 {
+#if WITH_FAST_C	
+	struct tsch_packet * tmpPtr;
+  if(!tsch_is_locked()) {
+    if(n != NULL) {
+      /* Get and remove packet from ringbuf (remove committed through an atomic operation */
+      int16_t get_index = ringbufindex_get(&n->tx_ringbuf);
+      if(get_index != -1) {
+		if(get_index != last_get_index) {
+			tmpPtr = n->tx_array[get_index];
+			n->tx_array[get_index] = n->tx_array[last_get_index];
+			n->tx_array[last_get_index] = tmpPtr;
+		}
+        return n->tx_array[get_index];
+      } else {
+        return NULL;
+      }
+    }
+  }
+  return NULL;
+#else
   if(!tsch_is_locked()) {
     if(n != NULL) {
       /* Get and remove packet from ringbuf (remove committed through an atomic operation */
@@ -288,6 +323,7 @@ tsch_queue_remove_packet_from_queue(struct tsch_neighbor *n)
     }
   }
   return NULL;
+#endif  
 }
 /*---------------------------------------------------------------------------*/
 /* Free a packet */
@@ -349,6 +385,39 @@ tsch_queue_is_empty(const struct tsch_neighbor *n)
 struct tsch_packet *
 tsch_queue_get_packet_for_nbr(const struct tsch_neighbor *n, struct tsch_link *link)
 {
+#if WITH_FAST_C
+  struct tsch_packet * retPtr = NULL;
+  if(!tsch_is_locked()) {
+    int is_shared_link = link != NULL && link->link_options & LINK_OPTION_SHARED;
+    if(n != NULL) {
+	  int16_t get_index = ringbufindex_peek_get(&n->tx_ringbuf);
+      if(get_index != -1 && !(is_shared_link && !tsch_queue_backoff_expired(n))) { 
+        uint8_t idx_start = n->tx_ringbuf.get_ptr;
+		uint8_t idx_end = n->tx_ringbuf.put_ptr;
+		uint8_t idx_mask = n->tx_ringbuf.mask;      
+		while(idx_start != idx_end) {
+#if TSCH_WITH_LINK_SELECTOR
+			int packet_attr_slotframe = queuebuf_attr(n->tx_array[(idx_start+1)&idx_mask]->qb, PACKETBUF_ATTR_TSCH_SLOTFRAME);
+			int packet_attr_timeslot = queuebuf_attr(n->tx_array[(idx_start+1)&idx_mask]->qb, PACKETBUF_ATTR_TSCH_TIMESLOT);
+
+			if(packet_attr_slotframe != 0xffff && packet_attr_slotframe != link->slotframe_handle) {
+			  idx_start = (idx_start + 1) & idx_mask;
+			  continue;
+			}
+			if(packet_attr_timeslot != 0xffff && packet_attr_timeslot != link->timeslot) {
+			  idx_start = (idx_start + 1) & idx_mask;
+			  continue;
+			}
+#endif
+			retPtr = n->tx_array[(idx_start+1)&idx_mask];
+			last_get_index = (idx_start + 1) &idx_mask;
+			break;
+		}
+      }
+    }
+  }
+  return retPtr;
+#else
   if(!tsch_is_locked()) {
     int is_shared_link = link != NULL && link->link_options & LINK_OPTION_SHARED;
     if(n != NULL) {
@@ -371,6 +440,7 @@ tsch_queue_get_packet_for_nbr(const struct tsch_neighbor *n, struct tsch_link *l
     }
   }
   return NULL;
+#endif
 }
 /*---------------------------------------------------------------------------*/
 /* Returns the head packet from a neighbor queue (from neighbor address) */

@@ -52,6 +52,10 @@
 #define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
+#ifdef RPL_HOP_COUNT_UPDATED_CALLBACK  
+void  RPL_HOP_COUNT_UPDATED_CALLBACK(const uint8_t hc);
+#endif 
+
 static void reset(rpl_dag_t *);
 static void neighbor_link_callback(rpl_parent_t *, int, int);
 #if RPL_WITH_DAO_ACK
@@ -264,7 +268,24 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
 static void
 update_metric_container(rpl_instance_t *instance)
 {
+  rpl_dag_t *dag = instance->current_dag;
+  
   instance->mc.type = RPL_DAG_MC;
+  
+  if (!dag->joined) {
+    PRINTF("RPL: Cannot update the metric container when not joined\n");
+    return;
+  }
+  
+  if(dag->rank == ROOT_RANK(instance)) {
+    instance->mc.hopcount = 1;
+  } else {
+    instance->mc.hopcount = dag->preferred_parent->mc.hopcount + 1;
+  }
+#ifdef RPL_HOP_COUNT_UPDATED_CALLBACK  
+  RPL_HOP_COUNT_UPDATED_CALLBACK(instance->mc.hopcount);
+#endif  
+  PRINTF("RPL: MRHOF set hopcount = %u rank = %u\n", instance->mc.hopcount, dag->rank);
 }
 #else
 static void
